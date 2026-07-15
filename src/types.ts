@@ -10,7 +10,7 @@ export interface Product {
   id: string;
   name: string;
   price: number;
-  category: 'Outerwear' | 'Tops' | 'Bottoms' | 'Accessories' | 'Gear & Bags';
+  category: 'Outerwear' | 'Tops' | 'Bottoms' | 'Footwear' | 'Accessories';
   description: string;
   image: string;
   rating: number;

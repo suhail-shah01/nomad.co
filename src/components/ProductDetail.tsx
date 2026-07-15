@@ -109,13 +109,14 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           </button>
 
           {/* Left Column: Product Image & Embroidery Badge Tag */}
-          <div className="w-full md:w-1/2 bg-neutral-50 relative aspect-[4/5] md:aspect-auto">
+          <div className="w-full md:w-1/2 bg-neutral-50 relative aspect-[4/5] md:aspect-auto overflow-hidden">
             <img
               src={product.image}
               alt={product.name}
               className="w-full h-full object-cover object-center"
               referrerPolicy="no-referrer"
             />
+
             {/* Dynamic Premium Embroidery Badge Tag Overlay */}
             <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm border border-neutral-200 shadow-sm px-3 py-2 flex items-center gap-2 rounded-sm pointer-events-none select-none">
               <svg viewBox="0 0 100 100" className="w-4 h-4 text-neutral-900" fill="currentColor">

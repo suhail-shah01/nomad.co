@@ -7,6 +7,7 @@ import { ProductDetail } from './components/ProductDetail';
 import { Cart } from './components/Cart';
 import { Checkout } from './components/Checkout';
 import { OrderHistory } from './components/OrderHistory';
+import { ContactModal } from './components/ContactModal';
 import { 
   Search, 
   ShoppingBag, 
@@ -20,7 +21,8 @@ import {
   Award,
   ArrowUp,
   Sliders,
-  Check
+  Check,
+  Mail
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -48,6 +50,7 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isContactOpen, setIsContactOpen] = useState(false);
 
   // Filters & Query Controls
   const [searchQuery, setSearchQuery] = useState('');
@@ -107,12 +110,42 @@ export default function App() {
 
     // 1. Search Query Filter
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        p => p.name.toLowerCase().includes(query) || 
-             p.category.toLowerCase().includes(query) ||
-             p.description.toLowerCase().includes(query)
-      );
+      const query = searchQuery.toLowerCase().trim();
+      const keywords = query.split(/\s+/).filter(Boolean);
+      
+      result = result.filter(p => {
+        return keywords.every(kw => {
+          const matchesName = p.name.toLowerCase().includes(kw);
+          const matchesCategory = p.category.toLowerCase().includes(kw);
+          const matchesDesc = p.description.toLowerCase().includes(kw);
+          const matchesColor = p.colors.some(c => c.name.toLowerCase().includes(kw));
+          const matchesSize = p.sizes.some(s => s.toLowerCase() === kw);
+          
+          // Synonyms for clothing
+          let matchesSynonyms = false;
+          if (kw === 'tshirt' || kw === 'tshirts' || kw === 't-shirt' || kw === 't-shirts' || kw === 'tee' || kw === 'tees' || kw === 'shirt' || kw === 'shirts') {
+            const normalizedName = p.name.toLowerCase();
+            matchesSynonyms = normalizedName.includes('tee') || normalizedName.includes('t-shirt') || normalizedName.includes('tshirt') || normalizedName.includes('shirt');
+          }
+          if (kw === 'hoodie' || kw === 'hoodies' || kw === 'sweatshirt' || kw === 'sweatshirts' || kw === 'pullover' || kw === 'pullovers' || kw === 'sweater' || kw === 'sweaters') {
+            const normalizedName = p.name.toLowerCase();
+            matchesSynonyms = normalizedName.includes('hoodie') || normalizedName.includes('sweatshirt') || normalizedName.includes('pullover') || normalizedName.includes('sweater') || normalizedName.includes('fleece');
+          }
+          if (kw === 'clothing' || kw === 'clothes' || kw === 'garment' || kw === 'garments' || kw === 'apparel') {
+            matchesSynonyms = p.category === 'Tops' || p.category === 'Outerwear' || p.category === 'Bottoms';
+          }
+          if (kw === 'logo' || kw === 'name' || kw === 'nomad' || kw === 'branding') {
+            matchesSynonyms = true; // Every product in the Nomad catalog features high-visibility branding
+          }
+          if (kw === 'kashmir' || kw === 'kashmiri') {
+            const normalizedName = p.name.toLowerCase();
+            const normalizedDesc = p.description.toLowerCase();
+            matchesSynonyms = normalizedName.includes('kashmir') || normalizedName.includes('kashmiri') || normalizedDesc.includes('kashmir') || normalizedDesc.includes('kashmiri') || normalizedName.includes('gulmarg') || normalizedName.includes('shikara') || normalizedName.includes('sonamarg') || normalizedName.includes('chinar') || normalizedName.includes('saffron') || normalizedName.includes('pahalgam') || normalizedName.includes('dal lake') || normalizedName.includes('himalayan');
+          }
+
+          return matchesName || matchesCategory || matchesDesc || matchesColor || matchesSize || matchesSynonyms;
+        });
+      });
     }
 
     // 2. Category Filter
@@ -131,10 +164,19 @@ export default function App() {
     } else if (sortType === 'rating') {
       result.sort((a, b) => b.rating - a.rating);
     } else {
-      // Featured / Default sorting: prioritize featured flag, then product ID
+      // Default/Featured sorting: Prioritize "T-shirts and Hoodies" (Tops category) first
+      // so they populate the first page, and other items are cleanly distributed on subsequent pages
       result.sort((a, b) => {
+        const aIsTop = a.category === 'Tops';
+        const bIsTop = b.category === 'Tops';
+        
+        if (aIsTop && !bIsTop) return -1;
+        if (!aIsTop && bIsTop) return 1;
+        
+        // Secondary sort: Prioritize featured items
         if (a.isFeatured && !b.isFeatured) return -1;
         if (!a.isFeatured && b.isFeatured) return 1;
+        
         return a.id.localeCompare(b.id);
       });
     }
@@ -149,12 +191,35 @@ export default function App() {
 
   // --- PAGINATION SYSTEM (12 items per page) ---
   const itemsPerPage = 12;
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  
+  const totalPages = useMemo(() => {
+    if (selectedCategory === 'All' && !searchQuery) {
+      // Page 1 is dedicated to Tops (T-Shirts and Hoodies)
+      // Remaining pages are dedicated to other items (Outerwear, Bottoms, Accessories, Footwear)
+      const othersCount = filteredProducts.filter(p => p.category !== 'Tops').length;
+      return 1 + Math.ceil(othersCount / itemsPerPage);
+    }
+    return Math.ceil(filteredProducts.length / itemsPerPage);
+  }, [filteredProducts, selectedCategory, searchQuery]);
   
   const paginatedProducts = useMemo(() => {
+    if (selectedCategory === 'All' && !searchQuery) {
+      const tops = filteredProducts.filter(p => p.category === 'Tops');
+      const others = filteredProducts.filter(p => p.category !== 'Tops');
+      
+      if (currentPage === 1) {
+        // Page 1: Only show the T-shirts & Hoodies (Tops)
+        return tops.slice(0, itemsPerPage);
+      } else {
+        // Pages 2+: Show the other products (Outerwear, Bottoms, Accessories, Footwear)
+        const startIndex = (currentPage - 2) * itemsPerPage;
+        return others.slice(startIndex, startIndex + itemsPerPage);
+      }
+    }
+    
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredProducts.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredProducts, currentPage]);
+  }, [filteredProducts, currentPage, selectedCategory, searchQuery]);
 
   // --- CART MUTATIONS ---
   const handleAddToCart = (product: Product) => {
@@ -292,6 +357,16 @@ export default function App() {
           {/* Action Buttons */}
           <div className="flex items-center gap-4">
             
+            {/* Contact Button */}
+            <button
+              onClick={() => setIsContactOpen(true)}
+              className="p-2 hover:bg-neutral-50 text-neutral-700 hover:text-neutral-950 transition-all flex items-center gap-1.5 relative border border-transparent hover:border-neutral-200 rounded-sm"
+              title="Contact Nomad"
+            >
+              <Mail className="w-4.5 h-4.5" />
+              <span className="font-mono text-xs hidden sm:inline">CONTACT</span>
+            </button>
+
             {/* Orders Tracker Button */}
             <button
               onClick={() => setIsHistoryOpen(true)}
@@ -415,7 +490,7 @@ export default function App() {
           
           {/* Category Tabs */}
           <div className="flex items-center overflow-x-auto gap-1 py-1 w-full lg:w-auto scrollbar-none">
-            {['All', 'Outerwear', 'Tops', 'Bottoms', 'Accessories', 'Gear & Bags'].map((cat) => (
+            {['All', 'Outerwear', 'Tops', 'Bottoms', 'Accessories', 'Footwear'].map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
@@ -463,6 +538,37 @@ export default function App() {
             </div>
           </div>
         </section>
+
+        {/* Kashmiri Nomad Suggested Searches */}
+        <div className="flex flex-wrap items-center gap-2 mb-6 bg-neutral-50 border border-neutral-100 p-3 rounded-sm">
+          <span className="font-mono text-[10px] text-neutral-400 uppercase tracking-widest mr-1">Suggested Searches:</span>
+          {[
+            { label: 'Gulmarg Snow-Cap', query: 'Gulmarg' },
+            { label: 'Hoodies', query: 'hoodie' },
+            { label: 'T-Shirts', query: 't-shirt' },
+            { label: 'Pashmina Wool', query: 'Pashmina' },
+            { label: 'Chinar Leaf', query: 'Chinar' },
+            { label: 'Shikara', query: 'Shikara' },
+            { label: 'Saffron Harvest', query: 'Saffron' },
+            { label: 'Sonamarg Alpine', query: 'Sonamarg' }
+          ].map((tag) => (
+            <button
+              key={tag.label}
+              onClick={() => {
+                setSearchQuery(tag.query);
+                setSelectedCategory('All');
+                document.getElementById('storefront-main')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className={`font-mono text-[10px] px-2.5 py-1 tracking-wider uppercase transition-all rounded-sm border ${
+                searchQuery.toLowerCase() === tag.query.toLowerCase()
+                  ? 'border-neutral-900 bg-neutral-900 text-white font-bold shadow-sm'
+                  : 'border-neutral-200 text-neutral-600 hover:border-neutral-900 hover:text-neutral-950 bg-white hover:bg-neutral-50'
+              }`}
+            >
+              #{tag.label}
+            </button>
+          ))}
+        </div>
 
         {/* Results Metadata & Clear Filters */}
         <div className="flex items-center justify-between mb-6 text-xs text-neutral-500">
@@ -572,12 +678,12 @@ export default function App() {
 
       {/* Editorial Footer */}
       <footer className="bg-neutral-950 text-white border-t border-neutral-900 pt-16 pb-8 mt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-10 border-b border-neutral-900 pb-12 mb-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 border-b border-neutral-900 pb-12 mb-10">
           
-          <div className="md:col-span-2 space-y-4">
+          <div className="space-y-4">
             <NomadLogo className="w-8 h-8 text-white" showText={true} textSize="text-lg" />
             <p className="font-sans text-xs text-neutral-400 max-w-sm leading-relaxed">
-              Nomad® Clothing Co. designs minimalist garments, systems, and accessories for transition and exploration. Authenticated with circular specifications, each design supports off-grid and transit lifestyles.
+              Nomad® Clothing Co. designs minimalist aesthetic garments, footwear, and vintage accessories for modern exploration. Authenticated with circular specifications, each piece is designed for enduring journeys.
             </p>
           </div>
 
@@ -585,10 +691,10 @@ export default function App() {
             <h4 className="font-display font-bold text-xs tracking-wider uppercase text-neutral-300 mb-4">THE 100 PIECES</h4>
             <ul className="space-y-2 font-mono text-[10px] text-neutral-500">
               <li>Outerwear System [001-020]</li>
-              <li>Tops & Insulation Layers [021-045]</li>
-              <li>Bottoms & Transit Pants [046-065]</li>
-              <li>Caps & Ribbed Accents [066-085]</li>
-              <li>Expedition Gear & Cases [086-100]</li>
+              <li>Vintage Tops & Tees [021-045]</li>
+              <li>Aesthetic Denim & Bottoms [046-065]</li>
+              <li>Vintage Washed Caps [066-085]</li>
+              <li>Aesthetic Footwear [086-100]</li>
             </ul>
           </div>
 
@@ -600,6 +706,20 @@ export default function App() {
             <span className="font-mono text-[9px] tracking-widest text-emerald-500 font-bold block uppercase">
               ● GLOBAL TRANSPORTS OPERATIONAL
             </span>
+          </div>
+
+          <div>
+            <h4 className="font-display font-bold text-xs tracking-wider uppercase text-neutral-300 mb-4">CONTACT ROUTING</h4>
+            <div className="space-y-2 font-sans text-xs text-neutral-400">
+              <p>Email: <a href="mailto:phantomcruiz5@gmail.com" className="text-neutral-200 hover:underline font-mono">phantomcruiz5@gmail.com</a></p>
+              <p>Phone: <a href="tel:8491829274" className="text-neutral-200 hover:underline font-mono">+8491829274</a></p>
+              <button
+                onClick={() => setIsContactOpen(true)}
+                className="mt-2 font-mono text-[9px] tracking-widest text-amber-500 hover:text-amber-400 font-bold uppercase flex items-center gap-1 hover:underline"
+              >
+                ● DISPATCH TRANSMISSION
+              </button>
+            </div>
           </div>
         </div>
 
@@ -654,6 +774,12 @@ export default function App() {
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
         orders={orders}
+      />
+
+      {/* Contact Us Form Modal */}
+      <ContactModal
+        isOpen={isContactOpen}
+        onClose={() => setIsContactOpen(false)}
       />
 
     </div>
