@@ -1,0 +1,6 @@
+{
+  "name": "Nomad Clothing Co.",
+  "description": "Premium minimalist outdoor and travel apparel storefront featuring 100 products, e-commerce cart, payment checkout, and user reviews.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
