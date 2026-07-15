@@ -4,6 +4,7 @@ import { products as initialProducts } from './data/products';
 import { NomadLogo } from './components/NomadLogo';
 import { ProductCard } from './components/ProductCard';
 import { ProductDetail } from './components/ProductDetail';
+import { OutfitSandbox } from './components/OutfitSandbox';
 import { Cart } from './components/Cart';
 import { Checkout } from './components/Checkout';
 import { OrderHistory } from './components/OrderHistory';
@@ -433,7 +434,7 @@ export default function App() {
                 EQUIPPED FOR THE ENDLESS PATH.
               </h1>
               <p className="font-sans text-sm text-neutral-300 leading-relaxed max-w-md">
-                Nomad® Co. designs durable capsule garments tailored for transition. Crafted from highly resilient, circular materials, our modular collections protect against the elements while maintaining a clean, technical visual signature.
+                Nomad® Collection designs durable capsule garments tailored for transition. Crafted from highly resilient, circular materials, our modular collections protect against the elements while maintaining a clean, technical visual signature.
               </p>
               
               <div className="flex flex-wrap items-center gap-4 pt-4">
@@ -593,6 +594,9 @@ export default function App() {
           )}
         </div>
 
+        {/* Interactive Outfit Sandbox & Collage Moodboard */}
+        <OutfitSandbox products={productsList} onAddToCart={handleAddToCart} />
+
         {/* Active Products Grid */}
         {filteredProducts.length === 0 ? (
           <div className="text-center py-24 bg-neutral-50 border border-neutral-200 rounded-sm">
@@ -683,7 +687,7 @@ export default function App() {
           <div className="space-y-4">
             <NomadLogo className="w-8 h-8 text-white" showText={true} textSize="text-lg" />
             <p className="font-sans text-xs text-neutral-400 max-w-sm leading-relaxed">
-              Nomad® Clothing Co. designs minimalist aesthetic garments, footwear, and vintage accessories for modern exploration. Authenticated with circular specifications, each piece is designed for enduring journeys.
+              Nomad® Collection designs minimalist aesthetic garments, footwear, and vintage accessories for modern exploration. Authenticated with circular specifications, each piece is designed for enduring journeys.
             </p>
           </div>
 
@@ -725,7 +729,7 @@ export default function App() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[10px] text-neutral-600">
           <div>
-            © 2026 NOMAD CLOTHING CO. ALL TRANSITS RESERVED.
+            © 2026 NOMAD COLLECTION. ALL TRANSITS RESERVED.
           </div>
           <div className="flex gap-4">
             <span className="hover:text-neutral-400 cursor-pointer">CERTIFIED B-CORP</span>

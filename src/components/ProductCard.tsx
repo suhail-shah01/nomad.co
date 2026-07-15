@@ -13,11 +13,31 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect, onA
   return (
     <motion.div 
       layout
+      drag
+      dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+      dragElastic={0.6}
+      dragTransition={{ bounceStiffness: 600, bounceDamping: 25 }}
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 15 }}
-      transition={{ duration: 0.4 }}
-      className="group relative flex flex-col bg-white border border-neutral-100 overflow-hidden cursor-pointer"
+      whileHover={{ 
+        y: -5,
+        boxShadow: "0 20px 25px -5px rgba(0,0,0,0.06), 0 10px 10px -5px rgba(0,0,0,0.02)",
+        borderColor: "rgba(0, 0, 0, 0.08)"
+      }}
+      whileDrag={{
+        scale: 1.05,
+        rotate: 1.5,
+        zIndex: 50,
+        boxShadow: "0 30px 45px -5px rgba(0,0,0,0.15), 0 15px 20px -5px rgba(0,0,0,0.08)",
+        borderColor: "rgba(0, 0, 0, 0.15)"
+      }}
+      transition={{ 
+        duration: 0.4, 
+        ease: [0.16, 1, 0.3, 1], // Highly responsive premium ease-out bezier
+        layout: { duration: 0.3 }
+      }}
+      className="group relative flex flex-col bg-white border border-neutral-100 overflow-hidden cursor-pointer transition-colors duration-300"
       onClick={() => onSelect(product)}
     >
       {/* Product Image Container with Embroidery Stamp */}
